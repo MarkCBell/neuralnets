@@ -12,7 +12,7 @@ def examples():
     return inputs, targets
 
 if __name__ == '__main__':
-    M = NeuralNetwork.unbiased([10, 7, 4, 1], bound_output=True)
-    M.learn(examples, epochs=10**3, batch=100, eta=0.9, verbose=lambda self: 'Energy: {:0.4f}'.format(self.energy([examples() for _ in range(100)])))
+    M = NeuralNetwork.unbiased([10, 7, 4, 1])
+    M.learn(examples, epochs=10**4, batch=100, verbose=lambda self: 'Energy: {:0.4f}'.format(self.energy([examples() for _ in range(100)])))
     print(' NeuralNetwork '.center(30, '='))
     print(M)
