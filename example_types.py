@@ -51,12 +51,11 @@ if __name__ == '__main__':
     epsilon = M.adversarial(inputs, fake_targets, 10000, eta=0.4, lmbda=0.5)  # Find a nudge that gets us close to fake_target.
     print('Inputs: ', inputs)
     print('Target: ', targets)
-    print('Output: ', M(inputs))
+    print('Output: ', M(np.array([inputs])))
     print('Epsilon: ', epsilon)
-    print('Nudged output: ', M(inputs + epsilon))
+    print('Nudged output: ', M(np.array([inputs + epsilon])))
     print('Size of epsilon: {} {}'.format(np.linalg.norm(epsilon), np.linalg.norm(epsilon, np.inf)))
     
-    for i in range(0, 100, 5):
-        print(i, M(inputs + (i / 100.0) * epsilon))
+    print(M(np.array([inputs + (i / 100.0) * epsilon for i in range(0, 100, 5)])))
     
 

@@ -74,18 +74,26 @@ class NeuralNetwork:
 
         return layers
 
+    def gradients(self, inputs, targets, include_layer_deltas=False):
+        gradients = []
+        layers = self.evaluate(inputs)
+
+        layer2_delta = targets - layers[-1]
+        if include_layer_deltas: gradients.append(layer2_delta)
+        for layer1, weight, layer2, activation in reversed(list(zip(layers, self.weights, layers[1:], self.activations))):
+            delta = activation.inv_prime(layer2) * layer2_delta
+            gradients.append(self.add_constant(layer1).T.dot(delta) / len(inputs))
+            layer2_delta = delta.dot(weight.T)[:, :-1]  # Setup for next loop.
+            if include_layer_deltas: gradients.append(layer2_delta)
+
+        return np.array(gradients[::-1])
+
     def learn(self, examples, epochs=1, batch=1, learning_rate=0.9, verbose=None):
         for index in range(epochs):
             inputs, targets = zip(*[examples() for _ in range(batch)])
             inputs, targets = np.array(inputs), np.array(targets)
 
-            layers = self.evaluate(inputs)
-
-            layer2_delta = targets - layers[-1]
-            for layer1, weight, layer2, activation in reversed(list(zip(layers, self.weights, layers[1:], self.activations))):
-                delta = activation.inv_prime(layer2) * layer2_delta
-                layer2_delta = delta.dot(weight.T)[:, :-1]  # Setup for next loop before we change weight.
-                weight += (learning_rate / batch) * self.add_constant(layer1).T.dot(delta)
+            self.weights += learning_rate * self.gradients(inputs, targets)
 
             if verbose is not None: print(index, verbose(self))
 
@@ -101,29 +109,19 @@ class NeuralNetwork:
 
         return np.linalg.norm(self(inputs) - targets, axis=1).mean()  # Max would also be reasonable.
 
-    def gradient(self, inputs, targets):
-        layers = self.evaluate(inputs)
-        deltas = [targets - layers[-1]]
-        
-        for layer1, weight, layer2, activate in reversed(list(zip(layers, self.weights, layers[1:], self.activations))):
-            layer2_delta = deltas[-1]
-            delta = sigma_inv_prime(layer2) * layer2_delta if activate else layer2_delta
-            weight_delta = np.outer(delta, np.hstack([layer1, [1.0]]))  # Add in the fixed +1 bias.
-            deltas.append(weight_delta)
-            layer1_delta = np.asarray(weight.T.dot(delta)).flatten()[:-1]  # Throw away the fixed +1 bias.
-            deltas.append(layer1_delta)
-        
-        return np.array(deltas[::-1])
-    
     def adversarial(self, inputs, targets, steps, eta, lmbda=0.05, verbose=None):
         ''' Find a small epsilon vector that can be added to inputs to try to reach targets. '''
-        assert 0 < eta * lmbda < 1
+        print(inputs)
+        print(targets)
         epsilon = np.random.normal(0, 0.5, len(inputs))
+        print(np.array([inputs + epsilon]))
+        assert 0 < eta * lmbda < 1
         for _ in range(steps):
-            inputs_derivative = self.gradient(inputs + epsilon, targets)[0]
+            self.evaluate(np.array([inputs + epsilon]))
+            inputs_derivative = self.gradients(np.array([inputs + epsilon]), np.array([targets]), include_layer_deltas=True)[0][0]
             epsilon = epsilon + eta * inputs_derivative
             epsilon *= 1 - eta * lmbda  # Shrink back towards zero vector.
             if verbose is not None: print(verbose(self, epsilon))
-        
+
         return epsilon
 
