@@ -2,7 +2,6 @@
 from itertools import product
 import numpy as np
 from random import randrange, choice
-from PIL import Image, ImageDraw
 from ann import NeuralNetwork
 
 
