@@ -29,8 +29,8 @@ def examples(mode=None, lower=0, upper=+0):
     return inputs, targets
 
 if __name__ == '__main__':
-    M = NeuralNetwork.unbiased([LENGTH, 12, 4], bound_output=True)
-    M.learn(examples, epochs=10**4, batch=100, eta=0.9,
+    M = NeuralNetwork.unbiased([LENGTH, 12, 4])
+    M.learn(examples, epochs=10**3, batch=100,
         verbose=lambda self: 'Accuracy: {1:0.1f}% Energy: {0:0.4f} (lower == better ML)'.format(
             self.energy([examples() for _ in range(100)]),
             100 * self.accuracy([examples() for _ in range(100)])
@@ -40,23 +40,22 @@ if __name__ == '__main__':
     print(M)
 
     for i in range(4):
-        print('Mode {}: Accuracy {}'.format(i, sum(M(examples(i)[0]) for _ in range(100)) / 100.0))
+        print('Mode {}: Accuracy {}'.format(i, M(np.array([examples(i)[0] for _ in range(100)])).mean(axis=0)))
 
     print(' Adversary example '.center(30, '='))
-    while True:
+    while True:  # Find an example which M classifies as type 2.
         inputs, targets = examples(2)
-        if np.argmax(M(inputs)) == 2: break
+        if np.argmax(M(np.array([inputs]))) == 2: break
 
     fake_targets = [0, 0, 0, 1]
     epsilon = M.adversarial(inputs, fake_targets, 10000, eta=0.4, lmbda=0.5)  # Find a nudge that gets us close to fake_target.
     print('Inputs: ', inputs)
     print('Target: ', targets)
-    print('Output: ', M(inputs))
+    print('Output: ', M(np.array([inputs])))
     print('Epsilon: ', epsilon)
-    print('Nudged output: ', M(inputs + epsilon))
+    print('Nudged output: ', M(np.array([inputs + epsilon])))
     print('Size of epsilon: {} {}'.format(np.linalg.norm(epsilon), np.linalg.norm(epsilon, np.inf)))
     
-    for i in range(0, 100, 5):
-        print(i, M(inputs + (i / 100.0) * epsilon))
+    print(M(np.array([inputs + (i / 100.0) * epsilon for i in range(0, 100, 5)])))
     
 
